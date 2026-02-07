@@ -1,0 +1,156 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mural Marketplace API",
+    "version": "1.0.0",
+    "description": "Backend for marketplace: customer product catalog, cart, checkout (USDC on Polygon), merchant orders and COP withdrawals. All list GETs are paginated; POSTs are idempotent where specified; responses include HATEOAS _links."
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/products": {
+      "get": {
+        "summary": "List products",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Paginated list of products with _links" } }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "summary": "Get product",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Product with _links" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/carts": {
+      "get": {
+        "summary": "List carts",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Paginated list of carts with _links" } }
+      },
+      "post": {
+        "summary": "Create cart (idempotent with idempotencyKey in body)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/CartItem" }
+                  },
+                  "idempotencyKey": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Created cart with _links" }, "400": { "description": "Bad request" } }
+      }
+    },
+    "/carts/{cartId}": {
+      "get": {
+        "summary": "Get cart",
+        "parameters": [{ "name": "cartId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Cart with _links" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/payments": {
+      "post": {
+        "summary": "Start payment (idempotent). Returns 202 Accepted with deposit address and amount for USDC.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cartId", "idempotencyKey"],
+                "properties": {
+                  "cartId": { "type": "string" },
+                  "idempotencyKey": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": { "description": "Accepted – send USDC to returned destinationAddress with memo" },
+          "400": { "description": "Bad request" },
+          "404": { "description": "Cart not found" }
+        }
+      }
+    },
+    "/withdrawals": {
+      "get": {
+        "summary": "List withdrawals",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Paginated list of withdrawals with _links" } }
+      }
+    },
+    "/merchant/orders": {
+      "get": {
+        "summary": "List orders or get one by orderId",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } },
+          { "name": "orderId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Order(s) with payment/withdrawal status and _links" }, "404": { "description": "Order not found" } }
+      }
+    },
+    "/merchant/withdrawals": {
+      "get": {
+        "summary": "List withdrawals or filter by orderId",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } },
+          { "name": "orderId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Withdrawals with _links" } }
+      }
+    },
+    "/webhooks/mural": {
+      "post": {
+        "summary": "Mural webhook (transfer.received, conversion.completed, withdrawal.completed, withdrawal.failed). Idempotent by deliveryId+eventId.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "eventId": { "type": "string" },
+                  "deliveryId": { "type": "string" },
+                  "eventCategory": { "type": "string", "enum": ["MURAL_ACCOUNT_BALANCE_ACTIVITY", "PAYOUT_REQUEST"] },
+                  "payload": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Processed" }, "400": { "description": "Invalid payload" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CartItem": {
+        "type": "object",
+        "properties": {
+          "productId": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}
