@@ -20,9 +20,22 @@ const tableNames = {
   idempotency: process.env.IDEMPOTENCY_TABLE ?? "mural-marketplace-idempotency",
 } as const;
 
+export class InvalidNextTokenError extends Error {
+  constructor(message = "Invalid nextToken") {
+    super(message);
+    this.name = "InvalidNextTokenError";
+    Object.setPrototypeOf(this, InvalidNextTokenError.prototype);
+  }
+}
+
 function decodeExclusiveStartKey(token: string | undefined): Record<string, AttributeValue> | undefined {
   if (!token) return undefined;
-  return JSON.parse(Buffer.from(token, "base64").toString()) as Record<string, AttributeValue>;
+  try {
+    const decoded = Buffer.from(token, "base64").toString("utf8");
+    return JSON.parse(decoded) as Record<string, AttributeValue>;
+  } catch {
+    throw new InvalidNextTokenError();
+  }
 }
 
 export async function getItem<T extends object>(

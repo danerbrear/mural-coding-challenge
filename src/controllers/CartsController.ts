@@ -1,6 +1,8 @@
 import { apiController, GET, POST, pathParam, queryParam, body, response } from "ts-lambda-api";
 import * as cartService from "../services/cartService";
+import { InvalidNextTokenError } from "../services/dynamodb";
 import type { Cart, CartItem } from "../models/types";
+import { paginationLinks } from "../utils/paginationLinks";
 
 function baseUrl(res: { get?: (name: string) => string } | undefined): string {
   if (!res?.get) return "";
@@ -35,7 +37,18 @@ export class CartsController {
     @response res?: { get?: (name: string) => string }
   ) {
     const limitNum = Math.min(Math.max(parseInt(limit ?? "20", 10) || 20, 1), 100);
-    const { items, nextToken: next } = await cartService.listCarts(limitNum, nextToken);
+    let items: Cart[];
+    let next: string | undefined;
+    try {
+      const result = await cartService.listCarts(limitNum, nextToken);
+      items = result.items;
+      next = result.nextToken;
+    } catch (err) {
+      if (err instanceof InvalidNextTokenError) {
+        return { statusCode: 400, message: "Invalid nextToken" };
+      }
+      throw err;
+    }
     const b = res ? baseUrl(res) : "";
     const data = items.map((c) => ({
       ...c,
@@ -44,9 +57,8 @@ export class CartsController {
       },
     }));
     return {
-      _links: { self: { href: `${b}/carts`, rel: "self" } },
+      _links: paginationLinks(`${b}/carts`, limitNum, nextToken, next),
       _embedded: { items: data },
-      items: data,
       nextToken: next,
     };
   }

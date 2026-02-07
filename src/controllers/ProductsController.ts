@@ -1,6 +1,8 @@
 import { apiController, GET, pathParam, queryParam, response } from "ts-lambda-api";
 import * as productService from "../services/productService";
+import { InvalidNextTokenError } from "../services/dynamodb";
 import type { Product } from "../models/types";
+import { paginationLinks } from "../utils/paginationLinks";
 
 type Res = { get?: (name: string) => string };
 
@@ -29,7 +31,18 @@ export class ProductsController {
   ) {
     await productService.ensureDefaultProducts();
     const limitNum = Math.min(Math.max(parseInt(limit ?? "20", 10) || 20, 1), 100);
-    const { items, nextToken: next } = await productService.listProducts(limitNum, nextToken);
+    let items: Product[];
+    let next: string | undefined;
+    try {
+      const result = await productService.listProducts(limitNum, nextToken);
+      items = result.items;
+      next = result.nextToken;
+    } catch (err) {
+      if (err instanceof InvalidNextTokenError) {
+        return { statusCode: 400, message: "Invalid nextToken" };
+      }
+      throw err;
+    }
     const b = res ? baseUrl(res) : "";
     const data = items.map((p) => ({
       ...p,
@@ -38,11 +51,8 @@ export class ProductsController {
       },
     }));
     return {
-      _links: {
-        self: { href: `${b}/products`, rel: "self" },
-      },
+      _links: paginationLinks(`${b}/products`, limitNum, nextToken, next),
       _embedded: { items: data },
-      items: data,
       nextToken: next,
     };
   }

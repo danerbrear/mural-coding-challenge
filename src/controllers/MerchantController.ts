@@ -1,6 +1,8 @@
 import { apiController, GET, queryParam, response } from "ts-lambda-api";
+import { InvalidNextTokenError } from "../services/dynamodb";
 import * as orderService from "../services/orderService";
 import * as withdrawalService from "../services/withdrawalService";
+import { paginationLinks } from "../utils/paginationLinks";
 
 function baseUrl(res: { get?: (name: string) => string } | undefined): string {
   if (!res?.get) return "";
@@ -31,7 +33,18 @@ export class MerchantController {
       };
     }
     const limitNum = Math.min(Math.max(parseInt(limit ?? "20", 10) || 20, 1), 100);
-    const { items, nextToken: next } = await orderService.listAllOrders(limitNum, nextToken);
+    let items: Awaited<ReturnType<typeof orderService.listAllOrders>>["items"];
+    let next: string | undefined;
+    try {
+      const result = await orderService.listAllOrders(limitNum, nextToken);
+      items = result.items;
+      next = result.nextToken;
+    } catch (err) {
+      if (err instanceof InvalidNextTokenError) {
+        return { statusCode: 400, message: "Invalid nextToken" };
+      }
+      throw err;
+    }
     const data = items.map((o) => ({
       ...o,
       _links: {
@@ -40,9 +53,8 @@ export class MerchantController {
       },
     }));
     return {
-      _links: { self: { href: `${b}/merchant/orders`, rel: "self" } },
+      _links: paginationLinks(`${b}/merchant/orders`, limitNum, nextToken, next),
       _embedded: { items: data },
-      items: data,
       nextToken: next,
     };
   }
@@ -65,11 +77,22 @@ export class MerchantController {
       }));
       return {
         _links: { self: { href: `${b}/merchant/withdrawals?orderId=${orderId}`, rel: "self" } },
-        items: data,
+        _embedded: { items: data },
       };
     }
     const limitNum = Math.min(Math.max(parseInt(limit ?? "20", 10) || 20, 1), 100);
-    const { items, nextToken: next } = await withdrawalService.listWithdrawals(limitNum, nextToken);
+    let items: Awaited<ReturnType<typeof withdrawalService.listWithdrawals>>["items"];
+    let next: string | undefined;
+    try {
+      const result = await withdrawalService.listWithdrawals(limitNum, nextToken);
+      items = result.items;
+      next = result.nextToken;
+    } catch (err) {
+      if (err instanceof InvalidNextTokenError) {
+        return { statusCode: 400, message: "Invalid nextToken" };
+      }
+      throw err;
+    }
     const data = items.map((w) => ({
       ...w,
       _links: {
@@ -78,9 +101,8 @@ export class MerchantController {
       },
     }));
     return {
-      _links: { self: { href: `${b}/merchant/withdrawals`, rel: "self" } },
+      _links: paginationLinks(`${b}/merchant/withdrawals`, limitNum, nextToken, next),
       _embedded: { items: data },
-      items: data,
       nextToken: next,
     };
   }

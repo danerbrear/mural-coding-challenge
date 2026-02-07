@@ -1,5 +1,7 @@
 import { apiController, GET, queryParam, response } from "ts-lambda-api";
+import { InvalidNextTokenError } from "../services/dynamodb";
 import * as withdrawalService from "../services/withdrawalService";
+import { paginationLinks } from "../utils/paginationLinks";
 
 function baseUrl(res: { get?: (name: string) => string } | undefined): string {
   if (!res?.get) return "";
@@ -17,7 +19,18 @@ export class WithdrawalsController {
     @response res?: { get?: (name: string) => string }
   ) {
     const limitNum = Math.min(Math.max(parseInt(limit ?? "20", 10) || 20, 1), 100);
-    const { items, nextToken: next } = await withdrawalService.listWithdrawals(limitNum, nextToken);
+    let items: Awaited<ReturnType<typeof withdrawalService.listWithdrawals>>["items"];
+    let next: string | undefined;
+    try {
+      const result = await withdrawalService.listWithdrawals(limitNum, nextToken);
+      items = result.items;
+      next = result.nextToken;
+    } catch (err) {
+      if (err instanceof InvalidNextTokenError) {
+        return { statusCode: 400, message: "Invalid nextToken" };
+      }
+      throw err;
+    }
     const b = res ? baseUrl(res) : "";
     const data = items.map((w) => ({
       ...w,
@@ -27,9 +40,8 @@ export class WithdrawalsController {
       },
     }));
     return {
-      _links: { self: { href: `${b}/withdrawals`, rel: "self" } },
+      _links: paginationLinks(`${b}/withdrawals`, limitNum, nextToken, next),
       _embedded: { items: data },
-      items: data,
       nextToken: next,
     };
   }
