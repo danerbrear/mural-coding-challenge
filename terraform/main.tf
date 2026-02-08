@@ -92,7 +92,7 @@ resource "aws_dynamodb_table" "payments" {
 
   attribute {
     name = "expectedAmountUsdc"
-    type = "S"
+    type = "N"
   }
 
   global_secondary_index {
