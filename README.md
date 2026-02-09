@@ -82,8 +82,8 @@ After deployment, register your webhook with Mural so deposits and payout events
 | GET | /carts/:cartId | Get cart |
 | POST | /payments | Start payment → 202 + deposit details (idempotent by `idempotencyKey`) |
 | GET | /withdrawals | List withdrawals (paginated) |
-| GET | /merchant/orders | List orders or ?orderId= for one |
-| GET | /merchant/withdrawals | List withdrawals or ?orderId= for one |
+| GET | /merchant/orders | List orders (paginated) |
+| GET | /merchant/withdrawals | List withdrawals (paginated) |
 | POST | /webhooks/mural | Mural webhook (idempotent by event) |
 
 List endpoints support `limit` and `nextToken`. Responses include `_links` (HATEOAS).
