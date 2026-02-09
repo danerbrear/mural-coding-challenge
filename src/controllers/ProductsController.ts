@@ -1,5 +1,5 @@
 import { injectable } from "inversify";
-import { apiController, GET, pathParam, queryParam, response } from "ts-lambda-api";
+import { apiController, apiOperation, apiResponse, GET, pathParam, queryParam, response } from "ts-lambda-api";
 import * as productService from "../services/productService";
 import { InvalidNextTokenError } from "../services/dynamodb";
 import type { Product } from "../models/types";
@@ -26,6 +26,9 @@ function productLinks(res: Res | undefined, id: string): Record<string, { href: 
 @injectable()
 export class ProductsController {
   @GET()
+  @apiOperation({ name: "List products", description: "Paginated list of products with _links" })
+  @apiResponse(200, { type: "object", description: "Paginated list of products with _links" })
+  @apiResponse(400, { type: "object", description: "Invalid nextToken" })
   public async list(
     @queryParam("limit") limit?: string,
     @queryParam("nextToken") nextToken?: string,
@@ -60,6 +63,9 @@ export class ProductsController {
   }
 
   @GET("/:id")
+  @apiOperation({ name: "Get product", description: "Single product with _links" })
+  @apiResponse(200, { type: "object", description: "Product with _links" })
+  @apiResponse(404, { type: "object", description: "Product not found" })
   public async get(@pathParam("id") id: string, @response res?: Res) {
     const product = await productService.getProduct(id);
     if (!product) return { statusCode: 404, message: "Product not found" };

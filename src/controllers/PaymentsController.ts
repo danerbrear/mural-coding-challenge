@@ -1,10 +1,11 @@
 import { injectable } from "inversify";
-import { apiController, POST, body, response } from "ts-lambda-api";
+import { apiController, apiOperation, apiRequest, apiResponse, POST, body, response } from "ts-lambda-api";
 import { v4 as uuidv4 } from "uuid";
 import * as cartService from "../services/cartService";
 import * as orderService from "../services/orderService";
 import * as paymentService from "../services/paymentService";
 import * as productService from "../services/productService";
+import { CreatePaymentRequest } from "../models/requestDtos";
 
 function baseUrl(res: { get?: (name: string) => string; status?: (code: number) => void } | undefined): string {
   if (!res?.get) return "";
@@ -22,6 +23,11 @@ interface CreatePaymentBody {
 @injectable()
 export class PaymentsController {
   @POST()
+  @apiOperation({ name: "Start payment", description: "Start payment (idempotent). Returns 202 Accepted with deposit address and amount for USDC." })
+  @apiRequest({ class: CreatePaymentRequest })
+  @apiResponse(202, { type: "object", description: "Accepted – send USDC to returned destinationAddress with memo" })
+  @apiResponse(400, { type: "object", description: "Bad request" })
+  @apiResponse(404, { type: "object", description: "Cart not found" })
   public async create(@body body: CreatePaymentBody, @response res?: { get?: (name: string) => string; status?: (code: number) => void }) {
     const { cartId, idempotencyKey } = body ?? {};
     if (!cartId || !idempotencyKey) {

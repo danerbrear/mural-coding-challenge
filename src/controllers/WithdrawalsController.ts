@@ -1,5 +1,5 @@
 import { injectable } from "inversify";
-import { apiController, GET, queryParam, response } from "ts-lambda-api";
+import { apiController, apiOperation, apiResponse, GET, queryParam, response } from "ts-lambda-api";
 import { InvalidNextTokenError } from "../services/dynamodb";
 import * as withdrawalService from "../services/withdrawalService";
 import { paginationLinks } from "../utils/paginationLinks";
@@ -15,6 +15,9 @@ function baseUrl(res: { get?: (name: string) => string } | undefined): string {
 @injectable()
 export class WithdrawalsController {
   @GET()
+  @apiOperation({ name: "List withdrawals", description: "Paginated list of withdrawals with _links" })
+  @apiResponse(200, { type: "object", description: "Paginated list of withdrawals with _links" })
+  @apiResponse(400, { type: "object", description: "Invalid nextToken" })
   public async list(
     @queryParam("limit") limit?: string,
     @queryParam("nextToken") nextToken?: string,

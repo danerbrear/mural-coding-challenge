@@ -1,7 +1,8 @@
 import { injectable } from "inversify";
-import { apiController, GET, POST, pathParam, queryParam, body, response } from "ts-lambda-api";
+import { apiController, apiOperation, apiRequest, apiResponse, GET, POST, pathParam, queryParam, body, response } from "ts-lambda-api";
 import * as cartService from "../services/cartService";
 import { InvalidNextTokenError } from "../services/dynamodb";
+import { CreateCartRequest } from "../models/requestDtos";
 import type { Cart, CartItem } from "../models/types";
 import { paginationLinks } from "../utils/paginationLinks";
 
@@ -16,6 +17,10 @@ function baseUrl(res: { get?: (name: string) => string } | undefined): string {
 @injectable()
 export class CartsController {
   @POST()
+  @apiOperation({ name: "Create cart", description: "Create cart (idempotent with idempotencyKey in body)" })
+  @apiRequest({ class: CreateCartRequest })
+  @apiResponse(200, { type: "object", description: "Created cart with _links" })
+  @apiResponse(400, { type: "object", description: "Bad request" })
   public async create(@body body: { items: CartItem[]; idempotencyKey?: string }, @response res?: { get?: (name: string) => string }) {
     const items = body?.items ?? [];
     if (!Array.isArray(items) || items.length === 0) {
@@ -33,6 +38,9 @@ export class CartsController {
   }
 
   @GET()
+  @apiOperation({ name: "List carts", description: "Paginated list of carts with _links" })
+  @apiResponse(200, { type: "object", description: "Paginated list of carts with _links" })
+  @apiResponse(400, { type: "object", description: "Invalid nextToken" })
   public async list(
     @queryParam("limit") limit?: string,
     @queryParam("nextToken") nextToken?: string,
@@ -66,6 +74,9 @@ export class CartsController {
   }
 
   @GET("/:cartId")
+  @apiOperation({ name: "Get cart", description: "Single cart by id with _links" })
+  @apiResponse(200, { type: "object", description: "Cart with _links" })
+  @apiResponse(404, { type: "object", description: "Cart not found" })
   public async get(@pathParam("cartId") cartId: string, @response res?: { get?: (name: string) => string }) {
     const cart = await cartService.getCart(cartId);
     if (!cart) return { statusCode: 404, message: "Cart not found" };

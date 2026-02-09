@@ -1,8 +1,9 @@
-import { apiController, POST, body, request, response } from "ts-lambda-api";
+import { apiController, apiOperation, apiRequest, apiResponse, POST, body, request, response } from "ts-lambda-api";
 import * as db from "../services/dynamodb";
 import * as orderService from "../services/orderService";
 import * as paymentService from "../services/paymentService";
 import * as withdrawalService from "../services/withdrawalService";
+import { MuralWebhookRequest } from "../models/requestDtos";
 
 const IDEMPOTENCY_TTL = 86400 * 7; // 7 days
 
@@ -19,7 +20,15 @@ type Res = { status?: (code: number) => void };
 
 @apiController("webhooks")
 export class WebhooksController {
-  @POST("mural")
+  @POST("/mural")
+  @apiOperation({
+    name: "Mural webhook",
+    description: "Mural webhook (MURAL_ACCOUNT_BALANCE_ACTIVITY, PAYOUT_REQUEST). Idempotent by deliveryId+eventId.",
+  })
+  @apiRequest({ class: MuralWebhookRequest })
+  @apiResponse(200, { type: "object", description: "Processed or already processed" })
+  @apiResponse(400, { type: "object", description: "Invalid payload" })
+  @apiResponse(500, { type: "object", description: "Processing failed" })
   public async mural(@body body: MuralWebhookEvent, @request _req?: unknown, @response res?: Res) {
     const event = body as MuralWebhookEvent;
     if (!event?.eventId || !event?.deliveryId || !event?.eventCategory) {

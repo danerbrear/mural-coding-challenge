@@ -1,156 +1,742 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Mural Marketplace API",
-    "version": "1.0.0",
-    "description": "Backend for marketplace: customer product catalog, cart, checkout (USDC on Polygon), merchant orders and COP withdrawals. All list GETs are paginated; POSTs are idempotent where specified; responses include HATEOAS _links."
-  },
-  "servers": [{ "url": "/" }],
-  "paths": {
-    "/products": {
-      "get": {
-        "summary": "List products",
-        "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Paginated list of products with _links" } }
-      }
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Mural Marketplace API",
+        "version": "1.0.0"
     },
-    "/products/{id}": {
-      "get": {
-        "summary": "Get product",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Product with _links" }, "404": { "description": "Not found" } }
-      }
-    },
-    "/carts": {
-      "get": {
-        "summary": "List carts",
-        "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Paginated list of carts with _links" } }
-      },
-      "post": {
-        "summary": "Create cart (idempotent with idempotencyKey in body)",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["items"],
-                "properties": {
-                  "items": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/CartItem" }
-                  },
-                  "idempotencyKey": { "type": "string" }
-                }
-              }
+    "paths": {
+        "carts": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Created cart with _links"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Bad request"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "example": "{\n  \"items\": [\n    {\n      \"productId\": \"prod_abc123\",\n      \"quantity\": 2\n    }\n  ],\n  \"idempotencyKey\": \"cart-create-optional-key\"\n}",
+                                "properties": {
+                                    "items": {
+                                        "type": "array",
+                                        "example": "[\n  {\n    \"productId\": \"prod_abc123\",\n    \"quantity\": 2\n  }\n]",
+                                        "items": {
+                                            "type": "object",
+                                            "example": "{\n  \"productId\": \"prod_abc123\",\n  \"quantity\": 2\n}",
+                                            "properties": {
+                                                "productId": {
+                                                    "type": "string",
+                                                    "example": "prod_abc123"
+                                                },
+                                                "quantity": {
+                                                    "type": "number",
+                                                    "example": 2
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "idempotencyKey": {
+                                        "type": "string",
+                                        "example": "cart-create-optional-key"
+                                    }
+                                }
+                            },
+                            "example": "{\n  \"items\": [\n    {\n      \"productId\": \"prod_abc123\",\n      \"quantity\": 2\n    }\n  ],\n  \"idempotencyKey\": \"cart-create-optional-key\"\n}"
+                        }
+                    },
+                    "description": ""
+                },
+                "summary": "Create cart",
+                "description": "Create cart (idempotent with idempotencyKey in body)",
+                "parameters": [],
+                "tags": [
+                    "Carts"
+                ]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Paginated list of carts with _links"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Invalid nextToken"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "List carts",
+                "description": "Paginated list of carts with _links",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {}
+                    },
+                    {
+                        "in": "query",
+                        "name": "nextToken",
+                        "schema": {}
+                    }
+                ],
+                "tags": [
+                    "Carts"
+                ]
             }
-          }
         },
-        "responses": { "200": { "description": "Created cart with _links" }, "400": { "description": "Bad request" } }
-      }
-    },
-    "/carts/{cartId}": {
-      "get": {
-        "summary": "Get cart",
-        "parameters": [{ "name": "cartId", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Cart with _links" }, "404": { "description": "Not found" } }
-      }
-    },
-    "/payments": {
-      "post": {
-        "summary": "Start payment (idempotent). Returns 202 Accepted with deposit address and amount for USDC.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["cartId", "idempotencyKey"],
-                "properties": {
-                  "cartId": { "type": "string" },
-                  "idempotencyKey": { "type": "string" }
-                }
-              }
+        "carts/{cartId}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Cart with _links"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Cart not found"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "Get cart",
+                "description": "Single cart by id with _links",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "cartId",
+                        "schema": {},
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Carts"
+                ]
             }
-          }
         },
-        "responses": {
-          "202": { "description": "Accepted – send USDC to returned destinationAddress with memo" },
-          "400": { "description": "Bad request" },
-          "404": { "description": "Cart not found" }
+        "merchant/orders/{id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Order with _links"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Order not found"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "Get order",
+                "description": "Single order by id with payment/withdrawal status and _links",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {},
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Merchant"
+                ]
+            }
+        },
+        "merchant/orders": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Paginated list of orders with _links"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Invalid nextToken"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "List orders",
+                "description": "Paginated list of orders with _links",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {}
+                    },
+                    {
+                        "in": "query",
+                        "name": "nextToken",
+                        "schema": {}
+                    }
+                ],
+                "tags": [
+                    "Merchant"
+                ]
+            }
+        },
+        "merchant/withdrawals/{id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Withdrawal with _links"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Withdrawal not found"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "Get withdrawal",
+                "description": "Single withdrawal by id with _links",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {},
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Merchant"
+                ]
+            }
+        },
+        "merchant/withdrawals": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Withdrawals with _links"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Invalid nextToken"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "List withdrawals",
+                "description": "Paginated list of withdrawals, optionally filter by orderId",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {}
+                    },
+                    {
+                        "in": "query",
+                        "name": "nextToken",
+                        "schema": {}
+                    },
+                    {
+                        "in": "query",
+                        "name": "orderId",
+                        "schema": {}
+                    }
+                ],
+                "tags": [
+                    "Merchant"
+                ]
+            }
+        },
+        "payments": {
+            "post": {
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Accepted – send USDC to returned destinationAddress with memo"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Bad request"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Cart not found"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "example": "{\n  \"cartId\": \"cart-uuid-here\",\n  \"idempotencyKey\": \"payment-key-required\"\n}",
+                                "properties": {
+                                    "cartId": {
+                                        "type": "string",
+                                        "example": "cart-uuid-here"
+                                    },
+                                    "idempotencyKey": {
+                                        "type": "string",
+                                        "example": "payment-key-required"
+                                    }
+                                }
+                            },
+                            "example": "{\n  \"cartId\": \"cart-uuid-here\",\n  \"idempotencyKey\": \"payment-key-required\"\n}"
+                        }
+                    },
+                    "description": ""
+                },
+                "summary": "Start payment",
+                "description": "Start payment (idempotent). Returns 202 Accepted with deposit address and amount for USDC.",
+                "parameters": [],
+                "tags": [
+                    "Payments"
+                ]
+            }
+        },
+        "products": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Paginated list of products with _links"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Invalid nextToken"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "List products",
+                "description": "Paginated list of products with _links",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {}
+                    },
+                    {
+                        "in": "query",
+                        "name": "nextToken",
+                        "schema": {}
+                    }
+                ],
+                "tags": [
+                    "Products"
+                ]
+            }
+        },
+        "products/{id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Product with _links"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Product not found"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "Get product",
+                "description": "Single product with _links",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {},
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "Products"
+                ]
+            }
+        },
+        "webhooks/mural": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Processed or already processed"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Invalid payload"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Processing failed"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "example": "{\n  \"eventId\": \"evt_123\",\n  \"deliveryId\": \"del_456\",\n  \"attemptNumber\": 1,\n  \"eventCategory\": \"MURAL_ACCOUNT_BALANCE_ACTIVITY\",\n  \"occurredAt\": \"2026-02-09T05:26:15.648Z\",\n  \"payload\": {\n    \"type\": \"AccountCredited\",\n    \"transactionId\": \"tx_789\"\n  }\n}",
+                                "properties": {
+                                    "eventId": {
+                                        "type": "string",
+                                        "example": "evt_123"
+                                    },
+                                    "deliveryId": {
+                                        "type": "string",
+                                        "example": "del_456"
+                                    },
+                                    "attemptNumber": {
+                                        "type": "number",
+                                        "example": 1
+                                    },
+                                    "eventCategory": {
+                                        "type": "string",
+                                        "example": "MURAL_ACCOUNT_BALANCE_ACTIVITY"
+                                    },
+                                    "occurredAt": {
+                                        "type": "string",
+                                        "example": "2026-02-09T05:26:15.648Z"
+                                    },
+                                    "payload": {
+                                        "type": "object",
+                                        "example": "{\n  \"type\": \"AccountCredited\",\n  \"transactionId\": \"tx_789\"\n}",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "example": "AccountCredited"
+                                            },
+                                            "transactionId": {
+                                                "type": "string",
+                                                "example": "tx_789"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "example": "{\n  \"eventId\": \"evt_123\",\n  \"deliveryId\": \"del_456\",\n  \"attemptNumber\": 1,\n  \"eventCategory\": \"MURAL_ACCOUNT_BALANCE_ACTIVITY\",\n  \"occurredAt\": \"2026-02-09T05:26:15.648Z\",\n  \"payload\": {\n    \"type\": \"AccountCredited\",\n    \"transactionId\": \"tx_789\"\n  }\n}"
+                        }
+                    },
+                    "description": ""
+                },
+                "summary": "Mural webhook",
+                "description": "Mural webhook (MURAL_ACCOUNT_BALANCE_ACTIVITY, PAYOUT_REQUEST). Idempotent by deliveryId+eventId.",
+                "parameters": [],
+                "tags": [
+                    "Webhooks"
+                ]
+            }
+        },
+        "withdrawals": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Paginated list of withdrawals with _links"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": "{}"
+                                },
+                                "example": "{}"
+                            }
+                        },
+                        "description": "Invalid nextToken"
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {}
+                        },
+                        "description": ""
+                    }
+                },
+                "summary": "List withdrawals",
+                "description": "Paginated list of withdrawals with _links",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {}
+                    },
+                    {
+                        "in": "query",
+                        "name": "nextToken",
+                        "schema": {}
+                    }
+                ],
+                "tags": [
+                    "Withdrawals"
+                ]
+            }
         }
-      }
     },
-    "/withdrawals": {
-      "get": {
-        "summary": "List withdrawals",
-        "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Paginated list of withdrawals with _links" } }
-      }
+    "components": {
+        "schemas": {},
+        "responses": {},
+        "parameters": {},
+        "examples": {},
+        "requestBodies": {},
+        "headers": {},
+        "securitySchemes": {},
+        "links": {},
+        "callbacks": {}
     },
-    "/merchant/orders": {
-      "get": {
-        "summary": "List orders or get one by orderId",
-        "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "nextToken", "in": "query", "schema": { "type": "string" } },
-          { "name": "orderId", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Order(s) with payment/withdrawal status and _links" }, "404": { "description": "Order not found" } }
-      }
-    },
-    "/merchant/withdrawals": {
-      "get": {
-        "summary": "List withdrawals or filter by orderId",
-        "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "nextToken", "in": "query", "schema": { "type": "string" } },
-          { "name": "orderId", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Withdrawals with _links" } }
-      }
-    },
-    "/webhooks/mural": {
-      "post": {
-        "summary": "Mural webhook (transfer.received, conversion.completed, withdrawal.completed, withdrawal.failed). Idempotent by deliveryId+eventId.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "eventId": { "type": "string" },
-                  "deliveryId": { "type": "string" },
-                  "eventCategory": { "type": "string", "enum": ["MURAL_ACCOUNT_BALANCE_ACTIVITY", "PAYOUT_REQUEST"] },
-                  "payload": {}
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Processed" }, "400": { "description": "Invalid payload" } }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "CartItem": {
-        "type": "object",
-        "properties": {
-          "productId": { "type": "string" },
-          "quantity": { "type": "integer", "minimum": 1 }
-        }
-      }
-    }
-  }
+    "tags": [],
+    "servers": []
 }

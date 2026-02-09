@@ -1,5 +1,5 @@
 import { injectable } from "inversify";
-import { apiController, GET, queryParam, response } from "ts-lambda-api";
+import { apiController, apiOperation, apiResponse, GET, pathParam, queryParam, response } from "ts-lambda-api";
 import { InvalidNextTokenError } from "../services/dynamodb";
 import * as orderService from "../services/orderService";
 import * as withdrawalService from "../services/withdrawalService";
@@ -15,25 +15,36 @@ function baseUrl(res: { get?: (name: string) => string } | undefined): string {
 @apiController("merchant")
 @injectable()
 export class MerchantController {
-  @GET("orders")
-  public async listOrders(
-    @queryParam("limit") limit?: string,
-    @queryParam("nextToken") nextToken?: string,
-    @queryParam("orderId") orderId?: string,
+  @GET("/orders/{id}")
+  @apiOperation({ name: "Get order", description: "Single order by id with payment/withdrawal status and _links" })
+  @apiResponse(200, { type: "object", description: "Order with _links" })
+  @apiResponse(404, { type: "object", description: "Order not found" })
+  public async getOrder(
+    @pathParam("id") id: string,
     @response res?: { get?: (name: string) => string }
   ) {
     const b = res ? baseUrl(res) : "";
-    if (orderId) {
-      const order = await orderService.getOrder(orderId);
-      if (!order) return { statusCode: 404, message: "Order not found" };
-      return {
-        _links: {
-          self: { href: `${b}/merchant/orders?orderId=${order.id}`, rel: "self" },
-          withdrawals: { href: `${b}/merchant/withdrawals?orderId=${order.id}`, rel: "withdrawals" },
-        },
-        ...order,
-      };
-    }
+    const order = await orderService.getOrder(id);
+    if (!order) return { statusCode: 404, message: "Order not found" };
+    return {
+      _links: {
+        self: { href: `${b}/merchant/orders/${order.id}`, rel: "self" },
+        withdrawals: { href: `${b}/merchant/withdrawals?orderId=${order.id}`, rel: "withdrawals" },
+      },
+      ...order,
+    };
+  }
+
+  @GET("/orders")
+  @apiOperation({ name: "List orders", description: "Paginated list of orders with _links" })
+  @apiResponse(200, { type: "object", description: "Paginated list of orders with _links" })
+  @apiResponse(400, { type: "object", description: "Invalid nextToken" })
+  public async listOrders(
+    @queryParam("limit") limit?: string,
+    @queryParam("nextToken") nextToken?: string,
+    @response res?: { get?: (name: string) => string }
+  ) {
+    const b = res ? baseUrl(res) : "";
     const limitNum = Math.min(Math.max(parseInt(limit ?? "20", 10) || 20, 1), 100);
     let items: Awaited<ReturnType<typeof orderService.listAllOrders>>["items"];
     let next: string | undefined;
@@ -50,7 +61,7 @@ export class MerchantController {
     const data = items.map((o) => ({
       ...o,
       _links: {
-        self: { href: `${b}/merchant/orders?orderId=${o.id}`, rel: "self" },
+        self: { href: `${b}/merchant/orders/${o.id}`, rel: "self" },
         withdrawals: { href: `${b}/merchant/withdrawals?orderId=${o.id}`, rel: "withdrawals" },
       },
     }));
@@ -61,7 +72,30 @@ export class MerchantController {
     };
   }
 
-  @GET("withdrawals")
+  @GET("/withdrawals/{id}")
+  @apiOperation({ name: "Get withdrawal", description: "Single withdrawal by id with _links" })
+  @apiResponse(200, { type: "object", description: "Withdrawal with _links" })
+  @apiResponse(404, { type: "object", description: "Withdrawal not found" })
+  public async getWithdrawal(
+    @pathParam("id") id: string,
+    @response res?: { get?: (name: string) => string }
+  ) {
+    const b = res ? baseUrl(res) : "";
+    const withdrawal = await withdrawalService.getWithdrawal(id);
+    if (!withdrawal) return { statusCode: 404, message: "Withdrawal not found" };
+    return {
+      _links: {
+        self: { href: `${b}/merchant/withdrawals/${withdrawal.id}`, rel: "self" },
+        order: { href: `${b}/merchant/orders/${withdrawal.orderId}`, rel: "order" },
+      },
+      ...withdrawal,
+    };
+  }
+
+  @GET("/withdrawals")
+  @apiOperation({ name: "List withdrawals", description: "Paginated list of withdrawals, optionally filter by orderId" })
+  @apiResponse(200, { type: "object", description: "Withdrawals with _links" })
+  @apiResponse(400, { type: "object", description: "Invalid nextToken" })
   public async listWithdrawals(
     @queryParam("limit") limit?: string,
     @queryParam("nextToken") nextToken?: string,
@@ -74,7 +108,8 @@ export class MerchantController {
       const data = items.map((w) => ({
         ...w,
         _links: {
-          self: { href: `${b}/merchant/withdrawals?orderId=${orderId}`, rel: "self" },
+          self: { href: `${b}/merchant/withdrawals/${w.id}`, rel: "self" },
+          order: { href: `${b}/merchant/orders/${w.orderId}`, rel: "order" },
         },
       }));
       return {
@@ -98,8 +133,8 @@ export class MerchantController {
     const data = items.map((w) => ({
       ...w,
       _links: {
-        self: { href: `${b}/merchant/withdrawals`, rel: "self" },
-        order: { href: `${b}/merchant/orders?orderId=${w.orderId}`, rel: "order" },
+        self: { href: `${b}/merchant/withdrawals/${w.id}`, rel: "self" },
+        order: { href: `${b}/merchant/orders/${w.orderId}`, rel: "order" },
       },
     }));
     return {
