@@ -621,7 +621,7 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "example": "{\n  \"eventId\": \"evt_123\",\n  \"deliveryId\": \"del_456\",\n  \"attemptNumber\": 1,\n  \"eventCategory\": \"MURAL_ACCOUNT_BALANCE_ACTIVITY\",\n  \"occurredAt\": \"2026-02-09T05:26:15.648Z\",\n  \"payload\": {\n    \"type\": \"AccountCredited\",\n    \"transactionId\": \"tx_789\"\n  }\n}",
+                                "example": "{\n  \"eventId\": \"evt_123\",\n  \"deliveryId\": \"del_456\",\n  \"attemptNumber\": 1,\n  \"eventCategory\": \"MURAL_ACCOUNT_BALANCE_ACTIVITY\",\n  \"occurredAt\": \"2026-02-09T05:40:54.353Z\",\n  \"payload\": {\n    \"type\": \"AccountCredited\",\n    \"transactionId\": \"tx_789\"\n  }\n}",
                                 "properties": {
                                     "eventId": {
                                         "type": "string",
@@ -641,7 +641,7 @@
                                     },
                                     "occurredAt": {
                                         "type": "string",
-                                        "example": "2026-02-09T05:26:15.648Z"
+                                        "example": "2026-02-09T05:40:54.353Z"
                                     },
                                     "payload": {
                                         "type": "object",
@@ -659,7 +659,7 @@
                                     }
                                 }
                             },
-                            "example": "{\n  \"eventId\": \"evt_123\",\n  \"deliveryId\": \"del_456\",\n  \"attemptNumber\": 1,\n  \"eventCategory\": \"MURAL_ACCOUNT_BALANCE_ACTIVITY\",\n  \"occurredAt\": \"2026-02-09T05:26:15.648Z\",\n  \"payload\": {\n    \"type\": \"AccountCredited\",\n    \"transactionId\": \"tx_789\"\n  }\n}"
+                            "example": "{\n  \"eventId\": \"evt_123\",\n  \"deliveryId\": \"del_456\",\n  \"attemptNumber\": 1,\n  \"eventCategory\": \"MURAL_ACCOUNT_BALANCE_ACTIVITY\",\n  \"occurredAt\": \"2026-02-09T05:40:54.353Z\",\n  \"payload\": {\n    \"type\": \"AccountCredited\",\n    \"transactionId\": \"tx_789\"\n  }\n}"
                         }
                     },
                     "description": ""

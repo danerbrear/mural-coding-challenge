@@ -15,7 +15,7 @@ function baseUrl(res: { get?: (name: string) => string } | undefined): string {
 @apiController("merchant")
 @injectable()
 export class MerchantController {
-  @GET("/orders/{id}")
+  @GET("/orders/:id")
   @apiOperation({ name: "Get order", description: "Single order by id with payment/withdrawal status and _links" })
   @apiResponse(200, { type: "object", description: "Order with _links" })
   @apiResponse(404, { type: "object", description: "Order not found" })
@@ -72,7 +72,7 @@ export class MerchantController {
     };
   }
 
-  @GET("/withdrawals/{id}")
+  @GET("/withdrawals/:id")
   @apiOperation({ name: "Get withdrawal", description: "Single withdrawal by id with _links" })
   @apiResponse(200, { type: "object", description: "Withdrawal with _links" })
   @apiResponse(404, { type: "object", description: "Withdrawal not found" })
