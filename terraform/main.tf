@@ -236,19 +236,19 @@ resource "aws_lambda_function" "api" {
       WITHDRAWALS_TABLE = aws_dynamodb_table.withdrawals.name
       IDEMPOTENCY_TABLE = aws_dynamodb_table.idempotency.name
       MURAL_API_URL     = var.mural_api_url
-      MURAL_API_KEY     = var.mural_api_key
-      MURAL_ORG_ID      = var.mural_org_id
-      MURAL_ACCOUNT_ID  = var.mural_account_id
+      MURAL_API_KEY     = local.mural_api_key
+      MURAL_ORG_ID      = local.mural_org_id
+      MURAL_ACCOUNT_ID  = local.mural_account_id
       SENDER_PRIVATE_KEY = var.sender_private_key
-      RPC_URL            = var.rpc_url
-      MERCHANT_COP_PHONE_NUMBER   = var.merchant_cop_phone_number
-      MERCHANT_COP_ACCOUNT_TYPE   = var.merchant_cop_account_type
-      MERCHANT_COP_BANK_ACCOUNT   = var.merchant_cop_bank_account
-      MERCHANT_COP_DOCUMENT_NUMBER = var.merchant_cop_document_number
-      MERCHANT_COP_DOCUMENT_TYPE  = var.merchant_cop_document_type
-      MERCHANT_COP_BANK_NAME      = var.merchant_cop_bank_name
-      MERCHANT_COP_ACCOUNT_OWNER  = var.merchant_cop_account_owner
-      MURAL_TRANSFER_API_KEY     = var.mural_transfer_api_key
+      RPC_URL            = local.rpc_url
+      MERCHANT_COP_PHONE_NUMBER   = local.merchant_cop_phone_number
+      MERCHANT_COP_ACCOUNT_TYPE   = local.merchant_cop_account_type
+      MERCHANT_COP_BANK_ACCOUNT   = local.merchant_cop_bank_account
+      MERCHANT_COP_DOCUMENT_NUMBER = local.merchant_cop_document_number
+      MERCHANT_COP_DOCUMENT_TYPE  = local.merchant_cop_document_type
+      MERCHANT_COP_BANK_NAME      = local.merchant_cop_bank_name
+      MERCHANT_COP_ACCOUNT_OWNER  = local.merchant_cop_account_owner
+      MURAL_TRANSFER_API_KEY     = local.mural_transfer_api_key
     }
   }
 }

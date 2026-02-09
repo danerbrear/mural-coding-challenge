@@ -12,7 +12,7 @@ const app = new ApiLambdaApp(
   appConfig
 );
 
-/** Strip API Gateway REST API stage from path so routes match (e.g. /default/webhooks/mural -> /webhooks/mural). */
+/** Strip API Gateway REST API stage from path so routes match (e.g. /default/merchant/orders/123 -> /merchant/orders/123). */
 function normalizeApiGatewayPath(ev: Record<string, unknown>): void {
   const stage = ev.requestContext && typeof (ev.requestContext as Record<string, unknown>).stage === "string"
     ? (ev.requestContext as Record<string, unknown>).stage as string

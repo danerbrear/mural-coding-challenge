@@ -1,20 +1,21 @@
 # Mural Marketplace Backend
 
-Backend service for the Mural Pay coding challenge: marketplace where customers checkout with **USDC on Polygon (testnet)**, and merchants receive payment confirmation and automatic **conversion and withdrawal to COP**.
+Backend service for the Mural Pay coding challenge: marketplace where customers checkout with **USDC on Polygon (testnet)**, and Dane Inc. receives payment confirmation and automatic **conversion and withdrawal to COP**.
 
-## Features
+## Quick Use
 
-- **Customer API**: Product catalog, carts, checkout (POST /payments → 202 with deposit address), list withdrawals.
-- **Merchant API**: List orders with payment status, list withdrawals (COP) with status.
-- **Webhooks**: `POST /webhooks/mural` handles Mural `MURAL_ACCOUNT_BALANCE_ACTIVITY` (transfer.received) and `PAYOUT_REQUEST` (conversion/withdrawal status). Idempotent using DynamoDB.
-- **Auto flow**: On incoming USDC deposit (webhook), payment is matched, order marked paid, then conversion + COP payout is created and executed via Mural API.
+1. Import `backend-openapi.json` to Postman
+2. Set the "baseUrl" variable to the URL from the Google Form
+3. Execute the following sequence
+    1. **GET /products** - Lists products to shop from
+    2. **POST /cart** - Creates a cart of products you want to buy
+    3. **POST /payment** - Purchase the items in a cart
+    4. **GET /merchant/orders/{orderId}** - Check the order status of the specific purchase
+    5. **GET /merchant/orders** - Get a list of all the orders' statuses for the account
+    6. **GET /merchant/withdrawals/{withdrawalId}** - Check the withdrawal status for a purchase
+    7. **GET /merchant/withdrawals** - Get a list of all withdrawals
 
-## Tech stack
-
-- **TypeScript**, **Node 20**
-- **ts-lambda-api** (Lambda + API Gateway, OpenAPI-capable)
-- **DynamoDB** (products, carts, orders, payments, withdrawals, idempotency)
-- **Terraform** (Lambda, API Gateway HTTP API, DynamoDB tables)
+Note: Scroll down for the respective curl commands
 
 ## Setup
 
@@ -23,7 +24,7 @@ Backend service for the Mural Pay coding challenge: marketplace where customers 
 - Node.js 20+
 - Terraform 1.0+
 - AWS CLI configured
-- Mural Staging account: org, account, API key, Transfer API key. Merchant COP bank details for withdrawals.
+- Mural Staging account
 
 ### 1. Install and build
 
@@ -36,33 +37,12 @@ npm run build
 
 ### 2. Terraform
 
-Create `terraform/terraform.tfvars` (or export vars). **Where to find each value**:
-
-| Variable | Where to find it |
-|----------|------------------|
-| **mural_api_key** | Mural platform: **Settings → Developers**. Create/copy the **API Key** (Bearer). Shown once; store securely. [Docs: Generate API Keys](https://developers.muralpay.com/docs/get-api-key) |
-| **mural_transfer_api_key** | Same place: **Settings → Developers**. Create/copy the **Transfer API Key**. Required for executing payouts; pass as `transfer-api-key` header. [Docs](https://developers.muralpay.com/docs/get-api-key) |
-| **mural_org_id** | Your **Organization ID** (UUID). Shown when you create an org via API, or in the Mural app (e.g. org/profile or URL). You can also call `GET https://api-staging.muralpay.com/api/organizations/search` (POST with body) or list from the platform. |
-| **mural_account_id** | Your **Account ID** (UUID). After KYC, Mural creates an account for your org. Get it via **GET** `https://api-staging.muralpay.com/api/accounts` (with Bearer API key and `on-behalf-of: <mural_org_id>`), or from the Mural app (e.g. account/wallet details). [Accounts](https://developers.muralpay.com/docs/account) |
-| **merchant_cop_*** | **Merchant COP bank details** for automatic withdrawal to Colombian Pesos. Use your (or test) Colombian bank details. For **sandbox**, the challenge says details don’t need to be real; use valid formats: phone (e.g. +57…), account number (6–18 digits), document number/type (e.g. NATIONAL_ID 6–10 digits), and a supported **bankName**. [COP validations](https://developers.muralpay.com/docs/validations) – use “Bank Name Validation” to get supported Colombian banks. |
-
-- **Sandbox**: Use base URL `https://api-staging.muralpay.com`. You need access to the [Sandbox environment](https://developers.muralpay.com/docs/sandbox-environment) (invite/demo). KYC is auto-approved; you can fund the account via testnet USDC (e.g. [Circle faucet](https://faucet.circle.com/)) or fake EUR deposit in the app.
-
 Create `terraform/terraform.tfvars` (or export vars):
 
-```hcl
-mural_api_key         = "your-mural-api-key"
-mural_org_id          = "your-org-uuid"
-mural_account_id      = "your-account-uuid"
-mural_transfer_api_key = "your-transfer-api-key"
+| **sender_private_key** | Your **sender_private_key ID** is your Polygon Amoy wallet's private key. |
 
-merchant_cop_phone_number   = "+57..."
-merchant_cop_account_type   = "CHECKING"
-merchant_cop_bank_account   = "..."
-merchant_cop_document_number = "..."
-merchant_cop_document_type  = "NATIONAL_ID"
-merchant_cop_bank_name     = "..."
-merchant_cop_account_owner = "..."
+```hcl
+sender_private_key = "..."
 ```
 
 From repo root:
@@ -85,11 +65,11 @@ After deployment, register your webhook with Mural so deposits and payout events
 
 ### 4. Test with cURL
 
-- List products: `curl https://YOUR_API_ENDPOINT/products`
-- Create cart: `curl -X POST https://YOUR_API_ENDPOINT/carts -H "Content-Type: application/json" -d '{"items":[{"productId":"<id>","quantity":1}]}'`
-- Start payment (idempotent): `curl -X POST https://YOUR_API_ENDPOINT/payments -H "Content-Type: application/json" -d '{"cartId":"<cartId>","idempotencyKey":"unique-key-1"}'` → 202 with `destinationAddress`, `memo`, `expectedAmountUsdc`
-- Merchant orders: `curl https://YOUR_API_ENDPOINT/merchant/orders`
-- Merchant withdrawals: `curl https://YOUR_API_ENDPOINT/merchant/withdrawals`
+1. List products: `curl https://YOUR_API_ENDPOINT/products`
+2. Create cart: `curl -X POST https://YOUR_API_ENDPOINT/carts -H "Content-Type: application/json" -d '{"items":[{"productId":"<id>","quantity":1}]}'`
+3. Start payment: `curl -X POST https://YOUR_API_ENDPOINT/payments -H "Content-Type: application/json" -d '{"cartId":"<cartId>","idempotencyKey":"unique-key-1"}'` → 202 with `destinationAddress`, `memo`, `expectedAmountUsdc`
+4. Merchant orders: `curl https://YOUR_API_ENDPOINT/merchant/orders`
+5. Merchant withdrawals: `curl https://YOUR_API_ENDPOINT/merchant/withdrawals`
 
 ## API overview
 
@@ -117,29 +97,39 @@ Backend API spec: [backend-openapi.json](./backend-openapi.json).
 ## Current status
 
 - **Working**
-  - Products (list, get); default products seeded on first list.
-  - Carts (create, list, get).
+  - Products (list, get); default products for this merchant.
+  - Carts (create, list, get) - can shop for products.
   - Payments: POST /payments creates order + payment, returns 202 with Mural account deposit address and memo for USDC (Polygon testnet).
-  - Idempotency: POST /payments and POST /webhooks/mural are idempotent (payment by `idempotencyKey`, webhook by `deliveryId`+`eventId` in DynamoDB).
   - Merchant orders and withdrawals (list, get by orderId).
   - Webhook handler: MURAL_ACCOUNT_BALANCE_ACTIVITY (deposit) triggers payment match and auto withdrawal; PAYOUT_REQUEST updates withdrawal/order status.
   - Auto conversion + COP withdrawal on payment received (create payout + execute with Mural API).
+  - Idempotency: POST methods are idempotent.
+  - Pagination: GET methods that return a list of items can be paginated.
 
 - **Pitfalls / limitations**
-  - **Deposit matching**: Incoming USDC is matched to a pending payment by **expected amount only**. Same amount from two different orders can be ambiguous; using a unique memo (orderId) is recommended. Mural may send balance activity payload in a different shape than assumed; payload parsing may need to be adjusted per Mural’s event docs.
-  - **Webhook payload**: PAYOUT_REQUEST and MURAL_ACCOUNT_BALANCE_ACTIVITY payload structures were inferred; if Mural’s production payload differs, handler may need updates.
-  - **202 for POST /payments**: Implemented via `res.status(202)` where the framework exposes `res`; if the deployed stack doesn’t return 202, the integration may need a small framework-specific tweak.
+  - Payments can fail if the associated Polygon Amoy wallet runs out of gas or USDC.
   - No webhook signature verification (design allowed simple setup); add ECDSA verification using Mural’s webhook public key for production.
 
 ---
 
-## Future work
+## Future Work
 
-- **Auth**: API key or simple header-based auth for merchant/customer endpoints.
-- **Webhook signature verification**: Verify `x-mural-webhook-signature` with Mural’s public key.
-- **Split Lambdas**: Separate functions for customer API, merchant API, webhook handler, and internal processing (e.g. conversion job).
-- **EventBridge**: Emit internal events (payment.received, conversion.completed) and process conversion/withdrawal asynchronously to reduce Lambda time and improve retries.
-- **DLQ**: Dead-letter queue for failed webhook deliveries and alerting.
-- **Rate limiting**: Per-client or per-key limits at API Gateway or in-app.
-- **Caching**: Cache product list and Mural account details where appropriate.
-- **Stricter deposit matching**: Use memo (e.g. orderId) from Mural transaction payload when available to avoid amount-only collisions.
+- Separate into multiple Lambdas by function (customer API, merchant API, webhook handler, internal processing).
+- Use an EventBridge Event Bus + SQS to handle kicking off jobs which take increased processing load or time.
+- Lambda cold start handling.
+- Rate limiting.
+- DLQ for failed webhook events.
+- API caching.
+- Expiring carts.
+- Add endpoints: `DELETE /cart`, `PATCH /cart`.
+- Hosted Zone failover.
+- API Gateway custom domain.
+- Secrets Manager for sensitive info.
+- Semantic versioning
+
+## Tech stack
+
+- **TypeScript**, **Node 20**
+- **ts-lambda-api** (Lambda + API Gateway, OpenAPI-capable)
+- **DynamoDB** (products, carts, orders, payments, withdrawals, idempotency)
+- **Terraform** (Lambda, API Gateway HTTP API, DynamoDB tables)
