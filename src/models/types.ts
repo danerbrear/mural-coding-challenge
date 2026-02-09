@@ -45,6 +45,8 @@ export interface Payment {
   memo: string;
   status: PaymentStatus;
   muralTransactionId?: string;
+  /** Transaction hash when backend sent USDC to the destination (if applicable). */
+  transactionHash?: string;
   createdAt: string;
   updatedAt: string;
   idempotencyKey: string;

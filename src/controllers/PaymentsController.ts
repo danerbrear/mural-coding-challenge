@@ -37,7 +37,13 @@ export class PaymentsController {
     if (totalUsdc <= 0) return { statusCode: 400, message: "Cart total must be positive" };
 
     const orderId = uuidv4();
-    const payment = await paymentService.createPayment(orderId, totalUsdc, idempotencyKey);
+    let payment;
+    try {
+      payment = await paymentService.createPayment(orderId, totalUsdc, idempotencyKey);
+    } catch (err) {
+      console.error("Payment creation failed:", err);
+      return { statusCode: 500, message: "Payment creation failed" };
+    }
 
     await orderService.createOrder({
       id: payment.orderId,
@@ -51,12 +57,14 @@ export class PaymentsController {
 
     const b = res ? baseUrl(res) : "";
     res?.status?.(202);
-    return {
+    const responseBody: Record<string, unknown> = {
       _links: {
         self: { href: `${b}/payments`, rel: "self" },
         order: { href: `${b}/merchant/orders?orderId=${payment.orderId}`, rel: "order" },
       },
-      message: "Payment processing started. Send USDC to the deposit address.",
+      message: payment.transactionHash
+        ? "Payment sent. USDC transfer submitted by backend."
+        : "Payment processing started. Send USDC to the deposit address.",
       orderId: payment.orderId,
       paymentId: payment.id,
       expectedAmountUsdc: payment.expectedAmountUsdc,
@@ -64,5 +72,9 @@ export class PaymentsController {
       blockchain: payment.blockchain,
       memo: payment.memo,
     };
+    if (payment.transactionHash) {
+      responseBody.transactionHash = payment.transactionHash;
+    }
+    return responseBody;
   }
 }

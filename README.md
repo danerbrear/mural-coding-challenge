@@ -1,6 +1,6 @@
 # Mural Marketplace Backend
 
-Backend service for the Mural Pay coding challenge: marketplace where customers checkout with **USDC on Polygon**, and merchants receive payment confirmation and automatic **conversion and withdrawal to COP**.
+Backend service for the Mural Pay coding challenge: marketplace where customers checkout with **USDC on Polygon (testnet)**, and merchants receive payment confirmation and automatic **conversion and withdrawal to COP**.
 
 ## Features
 
@@ -119,7 +119,7 @@ Backend API spec: [backend-openapi.json](./backend-openapi.json).
 - **Working**
   - Products (list, get); default products seeded on first list.
   - Carts (create, list, get).
-  - Payments: POST /payments creates order + payment, returns 202 with Mural account deposit address and memo for USDC (Polygon).
+  - Payments: POST /payments creates order + payment, returns 202 with Mural account deposit address and memo for USDC (Polygon testnet).
   - Idempotency: POST /payments and POST /webhooks/mural are idempotent (payment by `idempotencyKey`, webhook by `deliveryId`+`eventId` in DynamoDB).
   - Merchant orders and withdrawals (list, get by orderId).
   - Webhook handler: MURAL_ACCOUNT_BALANCE_ACTIVITY (deposit) triggers payment match and auto withdrawal; PAYOUT_REQUEST updates withdrawal/order status.

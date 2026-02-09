@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import * as db from "./dynamodb";
 import type { Payment } from "../models/types";
 import { getAccount, getMuralAccountId } from "./muralClient";
+import { sendUsdc } from "./usdcTransfer";
 
 export async function createPayment(
   orderId: string,
@@ -9,7 +10,10 @@ export async function createPayment(
   idempotencyKey: string
 ): Promise<Payment> {
   const existing = await getPaymentByIdempotencyKey(idempotencyKey);
-  if (existing) return existing;
+  if (existing) {
+    console.log("Payment already exists for idempotency key", idempotencyKey);
+    return existing;
+  }
 
   const accountId = getMuralAccountId();
   const account = await getAccount(accountId);
@@ -37,6 +41,26 @@ export async function createPayment(
     response: JSON.stringify(payment),
     ttl: Math.floor(Date.now() / 1000) + 86400 * 7,
   });
+
+  let txHash: string | undefined;
+  try {
+    txHash = await sendUsdc(
+      walletDetails.walletAddress,
+      expectedAmountUsdc,
+      walletDetails.blockchain ?? "POLYGON"
+    );
+  } catch (err) {
+    console.error("Backend USDC transfer failed:", err);
+    throw err;
+  }
+
+  if (txHash) {
+    const updated = { ...payment, transactionHash: txHash, updatedAt: new Date().toISOString() };
+    await db.updateItem("payments", { id: payment.id }, { transactionHash: txHash, updatedAt: updated.updatedAt });
+    await db.updateItem("idempotency", { key: `payment:${idempotencyKey}` }, { response: JSON.stringify(updated) });
+    return updated;
+  }
+
   return payment;
 }
 

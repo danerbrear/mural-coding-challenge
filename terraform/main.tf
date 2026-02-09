@@ -235,6 +235,8 @@ resource "aws_lambda_function" "api" {
       MURAL_API_KEY     = var.mural_api_key
       MURAL_ORG_ID      = var.mural_org_id
       MURAL_ACCOUNT_ID  = var.mural_account_id
+      SENDER_PRIVATE_KEY = var.sender_private_key
+      RPC_URL            = var.rpc_url
       MERCHANT_COP_PHONE_NUMBER   = var.merchant_cop_phone_number
       MERCHANT_COP_ACCOUNT_TYPE   = var.merchant_cop_account_type
       MERCHANT_COP_BANK_ACCOUNT   = var.merchant_cop_bank_account
@@ -247,30 +249,71 @@ resource "aws_lambda_function" "api" {
   }
 }
 
-# API Gateway HTTP API
-resource "aws_apigatewayv2_api" "http" {
-  name          = "${var.app_name}-api"
-  protocol_type = "HTTP"
+# API Gateway REST API (Lambda proxy integration)
+resource "aws_api_gateway_rest_api" "api" {
+  name        = "${var.app_name}-api"
+  description = "Mural Marketplace API"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
 }
 
-resource "aws_apigatewayv2_integration" "lambda" {
-  api_id                 = aws_apigatewayv2_api.http.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.api.invoke_arn
-  integration_method     = "POST"
-  payload_format_version = "2.0"
+resource "aws_api_gateway_resource" "proxy" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "{proxy+}"
 }
 
-resource "aws_apigatewayv2_route" "proxy" {
-  api_id    = aws_apigatewayv2_api.http.id
-  route_key = "$default"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+resource "aws_api_gateway_method" "proxy" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.proxy.id
+  http_method   = "ANY"
+  authorization = "NONE"
+  request_parameters = {
+    "method.request.path.proxy" = true
+  }
 }
 
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.http.id
-  name        = "$default"
-  auto_deploy = true
+resource "aws_api_gateway_integration" "proxy" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.proxy.id
+  http_method             = aws_api_gateway_method.proxy.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.api.invoke_arn
+}
+
+resource "aws_api_gateway_method" "root" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_rest_api.api.root_resource_id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "root" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_rest_api.api.root_resource_id
+  http_method             = aws_api_gateway_method.root.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.api.invoke_arn
+}
+
+resource "aws_api_gateway_deployment" "api" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  depends_on = [
+    aws_api_gateway_integration.proxy,
+    aws_api_gateway_integration.root,
+  ]
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_api_gateway_stage" "default" {
+  deployment_id = aws_api_gateway_deployment.api.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  stage_name    = "default"
 }
 
 resource "aws_lambda_permission" "api_gw" {
@@ -278,13 +321,13 @@ resource "aws_lambda_permission" "api_gw" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.api.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
 output "api_endpoint" {
-  value = aws_apigatewayv2_stage.default.invoke_url
+  value = "${aws_api_gateway_stage.default.invoke_url}/"
 }
 
 output "api_id" {
-  value = aws_apigatewayv2_api.http.id
+  value = aws_api_gateway_rest_api.api.id
 }

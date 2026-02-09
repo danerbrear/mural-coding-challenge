@@ -44,6 +44,20 @@ variable "mural_transfer_api_key" {
   description = "Mural Transfer API key for executing payouts"
 }
 
+# Backend USDC transfer (optional): when set, Lambda sends USDC to Mural account on payment creation
+variable "sender_private_key" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Private key of wallet that holds USDC (and native token for gas). If empty, customer must send USDC to the returned address."
+}
+
+variable "rpc_url" {
+  type        = string
+  default     = ""
+  description = "JSON-RPC URL for the chain (testnet only, e.g. Polygon Amoy). Use RPC_URL_POLYGON, RPC_URL_ETHEREUM, RPC_URL_BASE for per-chain overrides."
+}
+
 # Merchant COP bank details for automatic withdrawal (Colombian Pesos)
 variable "merchant_cop_phone_number" {
   type        = string

@@ -30,6 +30,7 @@ export class WebhooksController {
     const idempotencyKey = db.getIdempotencyKey(event.deliveryId, event.eventId);
     const claimed = await db.claimIdempotency(idempotencyKey, IDEMPOTENCY_TTL);
     if (!claimed) {
+      console.log("Webhook already processed for idempotency key", idempotencyKey);
       res?.status?.(200);
       return { message: "Already processed" };
     }

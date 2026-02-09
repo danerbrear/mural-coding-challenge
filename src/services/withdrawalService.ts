@@ -20,7 +20,10 @@ export async function createAndExecuteWithdrawal(
   idempotencyKey: string
 ): Promise<Withdrawal> {
   const existing = await listWithdrawalsByOrderId(orderId);
-  if (existing.length > 0) return existing[0];
+  if (existing.length > 0) {
+    console.log("Withdrawal already exists for order", orderId);
+    return existing[0];
+  }
 
   const now = new Date().toISOString();
   const withdrawal: Withdrawal = {
