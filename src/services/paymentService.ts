@@ -50,8 +50,12 @@ export async function createPayment(
       walletDetails.blockchain ?? "POLYGON"
     );
   } catch (err) {
-    console.error("Backend USDC transfer failed:", err);
+    console.error("Backend USDC transfer failed (insufficient MATIC/USDC or RPC error):", err);
     throw err;
+  }
+
+  if (!txHash) {
+    console.info("Backend USDC transfer skipped (no SENDER_PRIVATE_KEY or RPC_URL); customer must send to deposit address");
   }
 
   if (txHash) {
@@ -69,7 +73,7 @@ export async function getPayment(paymentId: string): Promise<Payment | null> {
 }
 
 export async function getPaymentByOrderId(orderId: string): Promise<Payment | null> {
-  const { items } = await db.query<Payment>("payments", "orderId = :oid", { "#oid": "orderId" }, { ":oid": orderId }, { indexName: "orderId-index", limit: 1 });
+  const { items } = await db.query<Payment>("payments", "#oid = :oid", { "#oid": "orderId" }, { ":oid": orderId }, { indexName: "orderId-index", limit: 1 });
   return items[0] ?? null;
 }
 

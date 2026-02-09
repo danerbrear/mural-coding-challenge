@@ -1,3 +1,4 @@
+import { injectable } from "inversify";
 import { apiController, GET, POST, pathParam, queryParam, body, response } from "ts-lambda-api";
 import * as cartService from "../services/cartService";
 import { InvalidNextTokenError } from "../services/dynamodb";
@@ -12,6 +13,7 @@ function baseUrl(res: { get?: (name: string) => string } | undefined): string {
 }
 
 @apiController("carts")
+@injectable()
 export class CartsController {
   @POST()
   public async create(@body body: { items: CartItem[]; idempotencyKey?: string }, @response res?: { get?: (name: string) => string }) {

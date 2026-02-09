@@ -188,8 +188,12 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
           aws_dynamodb_table.products.arn,
           aws_dynamodb_table.carts.arn,
           aws_dynamodb_table.orders.arn,
+          "${aws_dynamodb_table.orders.arn}/index/status-created-index",
           aws_dynamodb_table.payments.arn,
+          "${aws_dynamodb_table.payments.arn}/index/orderId-index",
+          "${aws_dynamodb_table.payments.arn}/index/status-expectedAmount-index",
           aws_dynamodb_table.withdrawals.arn,
+          "${aws_dynamodb_table.withdrawals.arn}/index/orderId-index",
           aws_dynamodb_table.idempotency.arn
         ]
       },

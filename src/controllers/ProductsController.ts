@@ -1,3 +1,4 @@
+import { injectable } from "inversify";
 import { apiController, GET, pathParam, queryParam, response } from "ts-lambda-api";
 import * as productService from "../services/productService";
 import { InvalidNextTokenError } from "../services/dynamodb";
@@ -22,6 +23,7 @@ function productLinks(res: Res | undefined, id: string): Record<string, { href: 
 }
 
 @apiController("products")
+@injectable()
 export class ProductsController {
   @GET()
   public async list(

@@ -1,3 +1,4 @@
+import { injectable } from "inversify";
 import { apiController, POST, body, response } from "ts-lambda-api";
 import { v4 as uuidv4 } from "uuid";
 import * as cartService from "../services/cartService";
@@ -18,6 +19,7 @@ interface CreatePaymentBody {
 }
 
 @apiController("payments")
+@injectable()
 export class PaymentsController {
   @POST()
   public async create(@body body: CreatePaymentBody, @response res?: { get?: (name: string) => string; status?: (code: number) => void }) {

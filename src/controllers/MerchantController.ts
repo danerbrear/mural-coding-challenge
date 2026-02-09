@@ -1,3 +1,4 @@
+import { injectable } from "inversify";
 import { apiController, GET, queryParam, response } from "ts-lambda-api";
 import { InvalidNextTokenError } from "../services/dynamodb";
 import * as orderService from "../services/orderService";
@@ -12,6 +13,7 @@ function baseUrl(res: { get?: (name: string) => string } | undefined): string {
 }
 
 @apiController("merchant")
+@injectable()
 export class MerchantController {
   @GET("orders")
   public async listOrders(

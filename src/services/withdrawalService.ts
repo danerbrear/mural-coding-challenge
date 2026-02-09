@@ -67,7 +67,7 @@ export async function createAndExecuteWithdrawal(
             physicalAddress: {
               address1: "123 Main St",
               country: "CO",
-              state: "CO",
+              state: "DC",
               city: "Bogota",
               zip: "110111",
             },
@@ -83,13 +83,12 @@ export async function createAndExecuteWithdrawal(
     });
 
     const executed = await executePayoutRequest(payout.id);
-    const fiatAmount = executed.payouts?.[0]?.details && "fiatAmount" in executed.payouts[0].details
-      ? (executed.payouts[0].details as { fiatAmount?: { fiatAmount: number } }).fiatAmount
-      : undefined;
+    const details = executed.payouts?.[0]?.details as { fiatAmount?: { fiatAmount: number } } | undefined;
+    const amountCop = details?.fiatAmount?.fiatAmount;
 
     await db.updateItem("withdrawals", { id: withdrawal.id }, {
       status: executed.status === "EXECUTED" ? "executed" : "pending",
-      amountCop: fiatAmount,
+      ...(amountCop != null && { amountCop }),
       updatedAt: new Date().toISOString(),
     });
 
@@ -113,7 +112,7 @@ export async function getWithdrawal(withdrawalId: string): Promise<Withdrawal | 
 export async function listWithdrawalsByOrderId(orderId: string): Promise<Withdrawal[]> {
   const { items } = await db.query<Withdrawal>(
     "withdrawals",
-    "orderId = :oid",
+    "#oid = :oid",
     { "#oid": "orderId" },
     { ":oid": orderId },
     { indexName: "orderId-index" }
